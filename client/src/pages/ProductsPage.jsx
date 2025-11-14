@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { fetchProducts, deleteProduct } from '../api/product.routes';
+import { addToCart } from '../api/cart.routes';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function ProductsPage() {
@@ -11,8 +12,10 @@ export default function ProductsPage() {
   const [error, setError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const user = useSelector((state) => state.user.user);
+  const loggedIn = useSelector((state) => state.user.loggedIn);
   const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const getProducts = async () => {
@@ -63,6 +66,20 @@ export default function ProductsPage() {
 
   const handleCreateClick = () => {
     navigate('/products/create');
+  };
+
+  const handleAddToCart = async (productId) => {
+    try {
+      const response = await addToCart(productId, 1);
+      if (response.success) {
+        toast.success('Product added to cart');
+        navigate('/products'); // to refresh the navbar cart count
+      } else {
+        toast.error(response.message || 'Failed to add product to cart');
+      }
+    } catch (error) {
+      toast.error('An error occurred while adding the product to the cart');
+    }
   };
 
   if (loading) {
@@ -120,50 +137,74 @@ export default function ProductsPage() {
 
         <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
           {products.map((product) => (
-            <div key={product.id} className="group relative">
+            <div key={product.id} className="group relative border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 bg-white">
               <div className="relative">
                 <img
                   alt={product.name}
                   src={product.image || 'https://via.placeholder.com/300'}
-                  className="aspect-square w-full rounded-md bg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-80 pointer-events-none"
+                  className="aspect-square w-full rounded-t-lg bg-gray-200 object-cover group-hover:opacity-75 lg:aspect-auto lg:h-80"
                 />
-                {isAdmin && (
-                  <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+                  {isAdmin && (
+                    <>
+                      <button
+                        type="button"
+                        className="bg-white text-gray-700 hover:bg-gray-100 p-2 rounded-full shadow-md transition-colors duration-200"
+                        onClick={() => handleEditClick(product.id)}
+                        title="Edit"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="bg-white text-gray-700 hover:bg-gray-100 p-2 rounded-full shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => handleDeleteClick(product.id)}
+                        disabled={deletingId === product.id}
+                        title="Delete"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </>
+                  )}
+                  {loggedIn && !isAdmin && (
                     <button
                       type="button"
-                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-md shadow-lg transition-colors duration-200"
-                      onClick={() => handleEditClick(product.id)}
-                      title="Edit"
+                      className="bg-white text-gray-700 hover:bg-gray-100 p-2 rounded-full shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => handleAddToCart(product.id)}
+                      title="Add to Cart"
+                      disabled={product.stock === 0}
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                     </button>
-                    <button
-                      type="button"
-                      className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-md shadow-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      onClick={() => handleDeleteClick(product.id)}
-                      disabled={deletingId === product.id}
-                      title="Delete"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
+                  )}
+                </div>
+                {product.stock === 0 && (
+                    <div className="absolute top-2 left-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Out of stock
+                        </span>
+                    </div>
                 )}
               </div>
-              <div className="mt-4 flex justify-between">
-                <div>
-                  <h3 className="text-sm text-gray-700">
-                    <a href="#" onClick={(e) => e.preventDefault()}>
-                      <span aria-hidden="true" className="absolute inset-0" />
-                      {product.name}
-                    </a>
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">{product.category}</p>
+              <div className="p-4">
+                <div className="flex justify-between">
+                  <div>
+                    <h3 className="text-sm text-gray-700">
+                      <a href="#" onClick={(e) => e.preventDefault()}>
+                        <span aria-hidden="true" className="absolute inset-0" />
+                        {product.name}
+                      </a>
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">{product.category}</p>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900">${product.price}</p>
                 </div>
-                <p className="text-sm font-medium text-gray-900">${product.price}</p>
               </div>
             </div>
           ))}

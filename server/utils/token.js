@@ -25,6 +25,14 @@ const verifyToken = (req, res, next) => {
     })
 }
 
+const verifyAdmin = (req, res, next) => {
+    if (req.userRole === 'admin') {
+        next();
+    } else {
+        res.status(403).json({ success: false, message: 'Forbidden: Admin access required' });
+    }
+};
+
 const isValidToken = (token) => {
     try {
         jwt.verify(token, process.env.TOKEN_SECRET);
@@ -36,5 +44,6 @@ const isValidToken = (token) => {
 
 module.exports = {
     verifyToken,
+    verifyAdmin,
     isValidToken,
 }

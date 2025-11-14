@@ -7,6 +7,10 @@ import Login from "./pages/Login";
 import CreateProductPage from "./pages/CreateProductPage";
 import EditProductPage from "./pages/EditProductPage";
 import ProfilePage from "./pages/ProfilePage";
+import CartPage from "./pages/CartPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import UserList from "./components/admin/UserList";
+import ProductList from "./components/admin/ProductList";
 import { ProtectedLayout, AuthLayout } from "./components/ProtectedRoute";
 import { AdminRoute } from "./components/AdminRoute";
 
@@ -30,6 +34,10 @@ export const router = createBrowserRouter([
           {
             path: "profile",
             element: <ProfilePage />,
+          },
+          {
+            path: "cart",
+            element: <CartPage />,
           }
         ],
       },
@@ -37,6 +45,20 @@ export const router = createBrowserRouter([
       {
         element: <AdminRoute />,
         children: [
+          {
+            path: "admin",
+            element: <AdminDashboardPage />,
+            children: [
+              {
+                path: "users",
+                element: <UserList />,
+              },
+              {
+                path: "products",
+                element: <ProductList />,
+              },
+            ]
+          },
           {
             path: "products/create",
             element: <CreateProductPage />,

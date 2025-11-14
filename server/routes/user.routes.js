@@ -1,7 +1,7 @@
 const { User } = require('../database/models');
 const express = require('express');
 const bcrypt = require('bcrypt');
-const { verifyToken } = require('../utils/token');
+const { verifyToken, verifyAdmin } = require('../utils/token');
 
 const router = express.Router();
 
@@ -47,8 +47,9 @@ router.put('/:id', verifyToken, async (req, res) => {
             return res.status(404).json({success: false, message: 'User not found', data: {}})
         }
 
-        if (user.dataValues.id !== req.userId) {
-            return res.status(400).json({success: false, message: 'Not the same user', data: {}})
+        // Allow admin to update any user, or non-admin to update their own user
+        if (req.userRole !== 'admin' && user.dataValues.id !== req.userId) {
+            return res.status(403).json({success: false, message: 'Forbidden: You can only update your own account', data: {}})
         }
 
         const updatedUser = await user.update({
@@ -77,6 +78,11 @@ router.delete('/:id', verifyToken, async (req, res) => {
             return res.status(404).json({success: false, message: 'User not found', data: {}})
         }
 
+        // Allow admin to delete any user, or non-admin to delete their own user
+        if (req.userRole !== 'admin' && user.dataValues.id !== req.userId) {
+            return res.status(403).json({success: false, message: 'Forbidden: You can only delete your own account', data: {}})
+        }
+
         await user.destroy();
 
         res.status(200).json({success: true, message: 'User successfully deleted', data: {}});
@@ -85,7 +91,7 @@ router.delete('/:id', verifyToken, async (req, res) => {
     }
 })
 
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const users = await User.findAll({
             attributes: {
@@ -101,10 +107,15 @@ router.get('/', verifyToken, async (req, res) => {
 
 router.get('/:id', verifyToken, async (req, res) => {
     try {
-        const id = req.params.id;
+        const id = parseInt(req.params.id, 10);
 
         if (isNaN(id)) {
             return res.status(400).json({success: false, message: 'User id is not valid', data: {}})
+        }
+
+        // Allow admin to view any user, or non-admin to view their own user
+        if (req.userRole !== 'admin' && req.userId !== id) {
+            return res.status(403).json({success: false, message: 'Forbidden: You can only view your own profile', data: {}})
         }
 
         const user = await User.findByPk(id, {

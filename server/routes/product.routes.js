@@ -1,6 +1,6 @@
 const { Product } = require('../database/models');
 const express = require('express');
-const {verifyToken} = require('../utils/token.js');
+const {verifyToken, verifyAdmin} = require('../utils/token.js');
 
 const router = express.Router();
 
@@ -33,10 +33,11 @@ router.get('/:id', async (req, res) => {
     }
 })
 
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const product = await Product.create({
-            ...req.body
+            ...req.body,
+            userId: req.userId
         })
 
         res.status(201).json({success: true, message: 'Product created successfully', data: product});
@@ -45,7 +46,7 @@ router.post('/', verifyToken, async (req, res) => {
     }
 })
 
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 
@@ -69,7 +70,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     }
 })
 
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {
     try {
         const id = req.params.id;
 

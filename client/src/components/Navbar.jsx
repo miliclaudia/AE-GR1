@@ -1,9 +1,11 @@
 import { Disclosure, DisclosureButton, DisclosurePanel, Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
-import { Bars3Icon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/outline'
+import { Bars3Icon, XMarkIcon, UserCircleIcon, ShoppingCartIcon } from '@heroicons/react/24/outline'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../store/slices/userSlice'
 import { classNames } from '../utils/tailwind'
+import { useEffect, useState } from 'react'
+import { getCart } from '../api/cart.routes'
 
 const navigation = [
   { name: 'Homepage', href: '/' },
@@ -15,9 +17,28 @@ export default function Navbar() {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const loggedIn = useSelector((state) => state.user.loggedIn)
+  const user = useSelector((state) => state.user.user)
+  const isAdmin = user?.role === 'admin'
+  const [cartItemCount, setCartItemCount] = useState(0);
+
+  useEffect(() => {
+    if (loggedIn) {
+      getCart().then(response => {
+        if (response.success) {
+          setCartItemCount(response.data.items.length);
+        }
+      });
+    } else {
+      setCartItemCount(0);
+    }
+  }, [loggedIn, location]);
+
 
   const isActive = (href) => {
-    return location.pathname === href
+    if (href === '/') {
+      return location.pathname === '/';
+    }
+    return location.pathname.startsWith(href);
   }
 
   const handleAuthClick = () => {
@@ -64,10 +85,35 @@ export default function Navbar() {
                     {item.name}
                   </Link>
                 ))}
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    aria-current={isActive('/admin') ? 'page' : undefined}
+                    className={classNames(
+                      isActive('/admin') ? 'bg-gray-900 text-white' : 'text-gray-300 hover:bg-white/5 hover:text-white',
+                      'rounded-md px-3 py-2 text-sm font-medium',
+                    )}
+                  >
+                    Admin
+                  </Link>
+                )}
               </div>
             </div>
           </div>
           <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0">
+            {loggedIn && (
+              <Link to="/cart" className="relative rounded-full p-1 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-gray-800">
+                <span className="absolute -inset-1.5" />
+                <span className="sr-only">View shopping cart</span>
+                <ShoppingCartIcon className="h-6 w-6" aria-hidden="true" />
+                {cartItemCount > 0 && (
+                  <span className="absolute top-0 right-0 block h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+                    {cartItemCount}
+                  </span>
+                )}
+              </Link>
+            )}
+
             {/* Profile dropdown */}
             <Menu as="div" className="relative ml-3">
               <MenuButton className="relative flex rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">

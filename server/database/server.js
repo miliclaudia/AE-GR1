@@ -8,7 +8,7 @@ const sequelize = new Sequelize({
 });
 
 sequelize
-  .sync()
+  .sync({ alter: true })
   .then(() => {
     console.log("Models successfully (re)created.");
   })
