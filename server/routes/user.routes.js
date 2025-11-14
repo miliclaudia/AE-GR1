@@ -8,7 +8,9 @@ const router = express.Router();
 router.post('/', async (req, res) => {
     try {
         const existingUser = await User.findOne({
-            email: req.body.email
+            where: {
+                email: req.body.email
+            }
         })
 
         if (existingUser) {
